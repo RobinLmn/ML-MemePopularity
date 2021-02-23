@@ -1,16 +1,26 @@
 import json
 import numpy as np
+
 import PIL.Image
+
 import tensorflow as tf
 from tensorflow import keras
+
 import matplotlib.pyplot as plt
 
+import requests
+from io import BytesIO
+
+def url_to_image(url):
+    response = requests.get(url)
+    return PIL.Image.open(BytesIO(response.content))
 
 def get_upvotes(data):
     upvotes = []
 
     for i in range(1, len(data)+1):
-        upvotes.append(data[str(i)]["ups"] - data[str(i)]["downs"])
+        if data[str(i)] != "Null":
+          upvotes.append(data[str(i)]["ups"] - data[str(i)]["downs"])
     mean = np.mean(upvotes)
 
     for i in range(len(upvotes)):
@@ -22,15 +32,12 @@ def get_images(data):
     images = []
     for i in range(1, len(data)+1):
         try:
-            img = PIL.Image.open("../data/memes/" + data[str(i)]["id"] + ".png")
-            images.append(img)
+          img = url_to_image(data[str(i)]["media"])
+          images.append(img)
         except:
-            try:
-                img = PIL.Image.open("../data/memes/" + data[str(i)]["id"] + ".jpg")
-                images.append(img)
-            except:
-                data.pop(str(i))
-    return images
+          print(str(i) + " is sad :(")
+          data[str(i)] = "Null"
+    return images, data
 
 def process_image(img):
     return tf.keras.preprocessing.image.img_to_array(img, data_format=None, dtype=None)
@@ -43,16 +50,18 @@ def divide(data):
 
 
 def get():
-    with open("../data/db.json", "r") as db:
-        data = json.load(db)["_default"]
+    response = requests.get("https://raw.githubusercontent.com/RobinLmn/ML-MemePopularity/main/data/db.json")
+    data = response.json()["_default"]
 
-        images = get_images(data)
-        upvotes = get_upvotes(data)
+    images, data = get_images(data)
+    upvotes = get_upvotes(data)
 
-        assert(len(images) == len(upvotes))
+    assert(len(images) == len(upvotes))
 
-        return divide(images), divide(upvotes)
+    return divide(images), divide(upvotes)
 
 images, labels = get()
 train_images, test_images = images
 train_labels, test_labels = labels
+
+train_images = list(map(process_image, train_images))
