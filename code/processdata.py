@@ -11,9 +11,13 @@ import matplotlib.pyplot as plt
 import requests
 from io import BytesIO
 
+
+
+
 def url_to_image(url):
     response = requests.get(url)
     return PIL.Image.open(BytesIO(response.content))
+
 
 def get_upvotes(data):
     upvotes = []
@@ -39,8 +43,10 @@ def get_images(data):
           data[str(i)] = "Null"
     return images, data
 
+
 def process_image(img):
     return tf.keras.preprocessing.image.img_to_array(img, data_format=None, dtype=None)
+
 
 def divide(data):
     size = len(data)
@@ -60,8 +66,18 @@ def get():
 
     return divide(images), divide(upvotes)
 
-images, labels = get()
-train_images, test_images = images
-train_labels, test_labels = labels
 
-train_images = list(map(process_image, train_images))
+def main():
+    print("Loading data...")
+    images, labels = get()
+    train_images, test_images = images
+    train_labels, test_labels = labels
+
+    print("Processing images...")
+    train_images = list(map(process_image, train_images))
+    test_images = list(map(process_image, test_images))
+
+    return train_images, test_images, train_labels, test_labels
+
+if __name__ == '__main__':
+    main()
