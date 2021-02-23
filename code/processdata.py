@@ -77,6 +77,7 @@ def main():
     train_images = list(map(process_image, train_images))
     test_images = list(map(process_image, test_images))
 
+    print("Finished processing")
     return train_images, test_images, train_labels, test_labels
 
 if __name__ == '__main__':
