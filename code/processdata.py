@@ -59,7 +59,7 @@ def get_data(data, max):
 
 def process_image(img):
     img = tf.keras.preprocessing.image.img_to_array(img, data_format=None, dtype=None).astype(np.uint8)
-    img = tf.image.resize(img, (1028, 1028)) / 255
+    img = tf.image.resize(img, (512, 512)) / 255
     return img
 
 def divide(data):
@@ -68,7 +68,7 @@ def divide(data):
     test_size = int(size)
     return data[0:training_size], data[training_size: test_size]
 
-def get(max):
+def process(max):
     print("\nLoading data...\n")
 
     response = requests.get("https://raw.githubusercontent.com/RobinLmn/ML-MemePopularity/main/data/db.json")
@@ -78,22 +78,19 @@ def get(max):
 
     assert(len(images) == len(upvotes))
 
+    print("\nSaving data...\n")
+    np.save("images.npy", images)
+    np.save("upvotes.npy", upvotes)
+
     print("\nFinished processing\n")
 
-    return divide(images), divide(upvotes)
-
-
-def main(max):
-    images, labels = get(max)
-    train_images, test_images = images
-    train_labels, test_labels = labels
+def get(max):
+    images, labels = np.load("images.npy"), np.load("upvotes.npy")
+    train_images, test_images = divide(images)
+    train_labels, test_labels = divide(labels)
 
     return train_images, test_images, train_labels, test_labels
 
 
 if __name__ == '__main__':
-     train_images, test_images, train_labels, test_labels = main(10)
-
-     print(train_labels)
-     plt.imshow(train_images[0])
-     plt.show()
+     process(3225)
