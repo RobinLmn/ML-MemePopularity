@@ -13,10 +13,9 @@ from io import BytesIO
 
 
 
-
 def url_to_image(url):
     response = requests.get(url)
-    return PIL.Image.open(BytesIO(response.content)).convert('RGB')
+    return PIL.Image.open(BytesIO(response.content))
 
 
 def get_data(data, max):
@@ -27,12 +26,12 @@ def get_data(data, max):
         percent = round(i * 100 / max, 2)
         print(str(percent) + "%", end="\r")
         try:
-            img = PIL.Image.open("../data/memes/" + data[str(i)]["id"] + ".png").convert('RGB')
+            img = PIL.Image.open("../data/memes/" + data[str(i)]["id"] + ".png")
             images.append(process_image(img))
             img.close()
         except FileNotFoundError:
             try:
-                img = PIL.Image.open("../data/memes/" + data[str(i)]["id"] + ".jpg").convert('RGB')
+                img = PIL.Image.open("../data/memes/" + data[str(i)]["id"] + ".jpg")
                 images.append(process_image(img))
                 img.close()
             except FileNotFoundError:
@@ -44,29 +43,43 @@ def get_data(data, max):
                     print(str(i) + " depreciated")
                     data[str(i)] = "Null"
 
+    return images, get_upvotes(data, max)
+
+
+def process_image(img):
+    img = tf.keras.preprocessing.image.img_to_array(img.convert('RGB'), data_format=None, dtype=None).astype(np.uint8)
+    img = tf.image.resize(img, (512, 512)) / 255
+    return img
+
+
+def get_upvotes(data, max):
     print("Getting upvotes...")
     upvotes = []
     for i in range(1, max+1):
       if data[str(i)] != "Null":
         upvotes.append(data[str(i)]["ups"] - data[str(i)]["downs"])
-    mean = np.mean(upvotes)
+
+    first, median, third = np.percentile(upvotes, 25), np.percentile(upvotes, 50), np.percentile(upvotes, 75)
 
     for i in range(len(upvotes)):
-      upvotes[i] = 0 if upvotes[i] >= mean else 1
+      if upvotes[i] < first:
+          upvotes[i] = 0
+      elif upvotes[i] < median:
+          upvotes[i] = 1
+      elif upvotes[i] < third:
+          upvotes[i] = 2
+      else:
+          upvotes[i] = 3
 
-    return images, upvotes
+    return upvotes
 
-
-def process_image(img):
-    img = tf.keras.preprocessing.image.img_to_array(img, data_format=None, dtype=None).astype(np.uint8)
-    img = tf.image.resize(img, (512, 512)) / 255
-    return img
 
 def divide(data):
     size = len(data)
     training_size = int(size * 0.8)
     test_size = int(size)
     return data[0:training_size], data[training_size: test_size]
+
 
 def process(max):
     print("\nLoading data...\n")
@@ -84,13 +97,22 @@ def process(max):
 
     print("\nFinished processing\n")
 
-def get(max):
-    images, labels = np.load("images.npy"), np.load("upvotes.npy")
-    train_images, test_images = divide(images)
-    train_labels, test_labels = divide(labels)
 
-    return train_images, test_images, train_labels, test_labels
+def update_upvotes():
+    response = requests.get("https://raw.githubusercontent.com/RobinLmn/ML-MemePopularity/main/data/db.json")
+    data = response.json()["_default"]
+    np.save("upvotes.npy", get_upvotes(data, 3225))
+
+
+def get(max):
+    images, labels = np.load("../data/preprocessing/images.npy"), np.load("../data/preprocessing/upvotes.npy")
+    assert(len(images) == len(labels))
+    return images, labels
 
 
 if __name__ == '__main__':
-     process(3225)
+     #process(3225)
+     #update_upvotes()
+     images = np.load("../data/preprocessing/images.npy")
+     for ele in images:
+        print(ele.shape)

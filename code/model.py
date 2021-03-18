@@ -6,21 +6,16 @@ import processdata as data
 def fit():
 
     size = 3225
-    training_images, test_images, training_labels, test_labels = data.get(size)
+    images, labels = data.get(size)
 
     print("Processing...")
 
-    train_dataset = tf.data.Dataset.from_tensor_slices((np.array(training_images), np.array(training_labels)))
-    train_dataset = train_dataset.cache()
-    train_dataset = train_dataset.shuffle(buffer_size=1000)
-    train_dataset = train_dataset.batch(32)
-    train_dataset = train_dataset.prefetch(buffer_size=tf.data.AUTOTUNE)
+    dataset = tf.data.Dataset.from_tensor_slices((np.array(images), np.array(labels)))
+    dataset = dataset.shuffle(buffer_size=1000)
+    dataset = dataset.batch(32)
+    dataset = dataset.prefetch(buffer_size=tf.data.AUTOTUNE)
 
-    test_dataset = tf.data.Dataset.from_tensor_slices((np.array(test_images), np.array(test_labels)))
-    test_dataset = test_dataset.cache()
-    test_dataset = test_dataset.shuffle(buffer_size=1000)
-    test_dataset = test_dataset.batch(32)
-    test_dataset = test_dataset.prefetch(buffer_size=tf.data.AUTOTUNE)
+    train, test = dataset.take(int(size * 0.8)), dataset.skip(int(size * 0.8))
 
     model = tf.keras.Sequential([
       tf.keras.layers.Conv2D(16, 3, padding='same', activation='relu'),
@@ -31,7 +26,7 @@ def fit():
       tf.keras.layers.MaxPooling2D(),
       tf.keras.layers.Flatten(),
       tf.keras.layers.Dense(128, activation='relu'),
-      tf.keras.layers.Dense(2)
+      tf.keras.layers.Dense(4)
     ])
 
 
@@ -41,7 +36,11 @@ def fit():
       metrics=['accuracy'])
 
     print("Training...")
-    model.fit(train_dataset, validation_data=test_dataset, epochs=3)
+    model.fit(train, validation_data=test, epochs=5)
+    model.save("Images CNN : Tue Mar 16 2021 (2)")
+
+def get():
+    return tf.keras.models.load_model("../data/model")
 
 if __name__ == '__main__':
     fit()
