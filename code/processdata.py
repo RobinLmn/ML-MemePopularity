@@ -112,7 +112,4 @@ def get(max):
 
 if __name__ == '__main__':
      #process(3225)
-     #update_upvotes()
-     images = np.load("../data/preprocessing/images.npy")
-     for ele in images:
-        print(ele.shape)
+     update_upvotes()
